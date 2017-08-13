@@ -1,4 +1,7 @@
+package app.sort.merge;
+
 import akka.actor.AbstractActor;
+import app.sort.MergeSortMessage;
 
 public class MergeArraysActor extends AbstractActor {
 
@@ -6,7 +9,6 @@ public class MergeArraysActor extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(MergeArraysMessage.class, (MergeArraysMessage mergeArraysMessage) -> {
-
                     int[] sortedArray = merge(mergeArraysMessage.getArrayOne(), mergeArraysMessage.getArrayTwo());
                     getSender().tell(new MergeSortMessage(sortedArray), getSelf());
                 })
@@ -23,7 +25,6 @@ public class MergeArraysActor extends AbstractActor {
 
             while (i < firstArray.length)
                 answer[k++] = firstArray[i++];
-
 
             while (j < secondArray.length)
                 answer[k++] = secondArray[j++];

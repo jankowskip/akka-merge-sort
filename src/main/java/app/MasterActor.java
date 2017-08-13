@@ -1,9 +1,11 @@
+package app;
+
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
-import sort.MergeSortActor;
+import app.sort.MergeSortActor;
 
 import java.util.Arrays;
 
@@ -14,8 +16,8 @@ public class MasterActor extends AbstractActor {
     public static void main(String[] args) {
         ActorSystem exampleSystem = ActorSystem.create(MERGE_SORT_SYSTEM);
         ActorRef master = exampleSystem.actorOf(Props.create(MasterActor.class, MasterActor::new));
-        int[] array = {2};
-        master.tell(array, ActorRef.noSender());
+        int[] arrayToSort = {2, 5, 4, 3, 2,1};
+        master.tell(arrayToSort, ActorRef.noSender());
     }
 
     @Override

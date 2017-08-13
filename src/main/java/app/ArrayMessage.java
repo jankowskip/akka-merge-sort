@@ -1,3 +1,5 @@
+package app;
+
 public class ArrayMessage {
 
     private int[] array;

@@ -1,3 +1,5 @@
+package app;
+
 public class SortedArrayMessage {
 
     private int[] sortedArray;

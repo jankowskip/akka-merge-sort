@@ -1,3 +1,5 @@
+package app.sort;
+
 public class MergeSortMessage {
 
     private int[] sortedArray;

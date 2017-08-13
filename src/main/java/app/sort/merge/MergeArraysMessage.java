@@ -1,3 +1,5 @@
+package app.sort.merge;
+
 public class MergeArraysMessage {
 
     private int[] arrayOne;
