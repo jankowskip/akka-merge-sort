@@ -1,24 +1,14 @@
-package app;
+package app.akka;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
-import app.sort.MergeSortActor;
+import app.akka.sort.MergeSortActor;
 
 import java.util.Arrays;
 
 public class MasterActor extends AbstractActor {
-
-    private static final String MERGE_SORT_SYSTEM = "MergeSortSystem";
-
-    public static void main(String[] args) {
-        ActorSystem exampleSystem = ActorSystem.create(MERGE_SORT_SYSTEM);
-        ActorRef master = exampleSystem.actorOf(Props.create(MasterActor.class, MasterActor::new));
-        int[] arrayToSort = {2, 5, 4, 3, 2,1};
-        master.tell(arrayToSort, ActorRef.noSender());
-    }
 
     @Override
     public Receive createReceive() {
@@ -28,8 +18,10 @@ public class MasterActor extends AbstractActor {
                     actorRef.tell(new ArrayMessage(array), getSelf());
                 })
                 .match(SortedArrayMessage.class, (SortedArrayMessage sortedArrayMessage) -> {
-                        System.out.println(Arrays.toString(sortedArrayMessage.getSortedArray()));
+                    System.out.println(Arrays.toString(sortedArrayMessage.getSortedArray()));
+                    getContext().stop(getSender());
                 })
-                .matchAny(this::unhandled).build();
+                .matchAny(this::unhandled)
+                .build();
     }
 }
