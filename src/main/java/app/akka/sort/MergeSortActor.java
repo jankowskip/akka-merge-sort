@@ -16,6 +16,7 @@ public class MergeSortActor extends AbstractActor {
     private AbstractActor.Receive idle;
     private AbstractActor.Receive waitingForArraysToMerge;
     private AbstractActor.Receive waitingForMergedSortedArray;
+    private AbstractActor.Receive terminated;
     private int[] firstSortedArray;
 
     public MergeSortActor() {
@@ -30,6 +31,7 @@ public class MergeSortActor extends AbstractActor {
                                 getContext().become(waitingForArraysToMerge);
                             } else {
                                 getSender().tell(new SortedArrayMessage(arrayMessage.getArray()), getSelf());
+                                getContext().become(terminated);
                             }
                         })
                         .build();
@@ -51,7 +53,13 @@ public class MergeSortActor extends AbstractActor {
                 receiveBuilder()
                         .match(SortedArrayMessage.class, (SortedArrayMessage sortedArrayMessage) -> {
                             getContext().getParent().tell(sortedArrayMessage, getSelf());
+                            getContext().become(terminated);
                         })
+                        .build();
+
+        terminated =
+                receiveBuilder()
+                        .matchAny(this::unhandled)
                         .build();
     }
 
