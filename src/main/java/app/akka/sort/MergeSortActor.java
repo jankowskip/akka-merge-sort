@@ -3,63 +3,60 @@ package app.akka.sort;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import app.akka.ArrayMessage;
-import app.akka.SortedArrayMessage;
-import app.akka.sort.merge.MergeArraysActor;
-import app.akka.sort.merge.MergeArraysMessage;
-
-import static java.util.Arrays.copyOfRange;
-import static java.util.Objects.isNull;
+import app.akka.ListMessage;
+import app.akka.SortedListMessage;
+import app.akka.sort.merge.MergeListsActor;
+import app.akka.sort.merge.MergeListsMessage;
+import com.google.common.collect.ImmutableList;
 
 public class MergeSortActor extends AbstractActor {
 
     private AbstractActor.Receive idle;
-    private AbstractActor.Receive waitingForArraysToMerge;
-    private AbstractActor.Receive waitingForMergedSortedArray;
-    private AbstractActor.Receive terminated;
-    private int[] firstSortedArray;
+    private AbstractActor.Receive waitingForFirstListToMerge;
+    private AbstractActor.Receive waitingForSecondListToMerge;
+    private AbstractActor.Receive waitingForMergedSortedList;
+    private ImmutableList<Integer> firstSortedList;
 
     public MergeSortActor() {
 
         idle =
                 receiveBuilder()
-                        .match(ArrayMessage.class, (ArrayMessage arrayMessage) -> {
-                            int[] messageArray = arrayMessage.getArray();
-                            if (messageArray.length > 1) {
-                                sendArrayChunkToNewMergeSortActor(messageArray, 0, messageArray.length / 2);
-                                sendArrayChunkToNewMergeSortActor(messageArray, messageArray.length / 2, messageArray.length);
-                                getContext().become(waitingForArraysToMerge);
+                        .match(ListMessage.class, (ListMessage listMessage) -> {
+                            ImmutableList<Integer> messageList = listMessage.getList();
+                            if (messageList.size() > 1) {
+                                sendListChunkToNewMergeSortActor(messageList.subList(0, messageList.size() / 2));
+                                sendListChunkToNewMergeSortActor(messageList.subList(messageList.size() / 2, messageList.size()));
+                                getContext().become(waitingForFirstListToMerge);
                             } else {
-                                getSender().tell(new SortedArrayMessage(arrayMessage.getArray()), getSelf());
-                                getContext().become(terminated);
+                                getSender().tell(new SortedListMessage(listMessage.getList()), getSelf());
+                                getContext().stop(getSelf());
                             }
                         })
                         .build();
 
-        waitingForArraysToMerge =
+        waitingForFirstListToMerge =
                 receiveBuilder()
-                        .match(SortedArrayMessage.class, (SortedArrayMessage sortedArrayMessage) -> {
-                            if (isNull(this.firstSortedArray)) {
-                                this.firstSortedArray = sortedArrayMessage.getSortedArray();
-                            } else {
-                                ActorRef actorRef = getContext().actorOf(Props.create(MergeArraysActor.class, MergeArraysActor::new));
-                                actorRef.tell(new MergeArraysMessage(this.firstSortedArray, sortedArrayMessage.getSortedArray()), getSelf());
-                                getContext().become(waitingForMergedSortedArray);
-                            }
+                        .match(SortedListMessage.class, (SortedListMessage sortedListMessage) -> {
+                            this.firstSortedList = sortedListMessage.getSortedList();
+                            getContext().become(waitingForSecondListToMerge);
                         })
                         .build();
 
-        waitingForMergedSortedArray =
+        waitingForSecondListToMerge =
                 receiveBuilder()
-                        .match(SortedArrayMessage.class, (SortedArrayMessage sortedArrayMessage) -> {
-                            getContext().getParent().tell(sortedArrayMessage, getSelf());
-                            getContext().become(terminated);
+                        .match(SortedListMessage.class, (SortedListMessage sortedListMessage) -> {
+                            ActorRef actorRef = getContext().actorOf(Props.create(MergeListsActor.class, MergeListsActor::new));
+                            actorRef.tell(new MergeListsMessage(this.firstSortedList, sortedListMessage.getSortedList()), getSelf());
+                            getContext().become(waitingForMergedSortedList);
                         })
                         .build();
 
-        terminated =
+        waitingForMergedSortedList =
                 receiveBuilder()
-                        .matchAny(this::unhandled)
+                        .match(SortedListMessage.class, (SortedListMessage sortedListMessage) -> {
+                            getContext().getParent().tell(sortedListMessage, getSelf());
+                            getContext().stop(getSelf());
+                        })
                         .build();
     }
 
@@ -68,10 +65,9 @@ public class MergeSortActor extends AbstractActor {
         return idle;
     }
 
-    private void sendArrayChunkToNewMergeSortActor(int[] originalArray, int from, int to) {
+    private void sendListChunkToNewMergeSortActor(ImmutableList<Integer> listChunk) {
         ActorRef actorRef = getContext().actorOf(Props.create(MergeSortActor.class, MergeSortActor::new));
-        int[] arrayChunk = copyOfRange(originalArray, from, to);
-        actorRef.tell(new ArrayMessage(arrayChunk), getSelf());
+        actorRef.tell(new ListMessage(listChunk), getSelf());
     }
 
 }
